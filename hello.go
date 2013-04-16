@@ -3,6 +3,7 @@ import (
 	"fmt"
 	"net/http"
 	"encoding/json"
+	"io/ioutil"
 )
 
 type Response map[string]interface{}
@@ -19,7 +20,20 @@ func (r Response) String() (s string) {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, Response{"success": true, "message": fmt.Sprintf("data: %s", r.URL.Path[1:])})
+	if r.Method == "POST" {
+		buf, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			jsonStr := string(buf)
+			res := &Response{}
+			json.Unmarshal([]byte(jsonStr), &res)
+			fmt.Fprint(w, Response{"success": true, "data": res})
+		} else {
+			fmt.Fprint(w, Response{"success": false, "data": "Error parsing body"})
+		}
+	} else {
+		fmt.Fprint(w, Response{"success": true, "message": fmt.Sprintf("%s", r.URL.Path[1:])})
+	}
+	
 }
 
 func main() {
